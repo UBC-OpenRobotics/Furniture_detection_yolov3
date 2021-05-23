@@ -5,52 +5,75 @@ import json
 
 # Takes in the path of target image and returns class ids and bounding box labels as JSON strings
 # Return format [[c1,x1,y1,w1,h1],[c2,x2,y2,w2,h2]...]. Returns [] if no detection.
-class furniture: 
-    def get_detections(image):
-    (H, W) = image.shape[:2]
-    blob = cv2.dnn.blobFromImage(image, 1 / 255.0, (416, 416), swapRB=True, crop=False)
+class furniture:
+    def __init__(self):
+        # initiliaze
+        self.weights_path = './yolov3-tiny-obj_best.weights'
+        self.config_path = './yolov3-tiny-obj.cfg'
+        self.labels_path = './obj.names'
+        #Load model based on cfg files and trained weights
+        self.model = cv2.dnn.readNetFromDarknet(self.config_path, self.weights_path)
 
-    #Run image through model.
-    model.setInput(blob)
-    layerOutputs = model.forward(ln)
+    def get_detections(self, image):
+        ln = self.model.getLayerNames()
+        #Get output layers
+        ln = [ln[i[0] - 1] for i in self.model.getUnconnectedOutLayers()]
+        #Read labels from .names file
+        labels = open(self.labels_path).read().strip().split("\n")
+        #image = cv2.imread(path)
+        (H, W) = image.shape[:2]
+        blob = cv2.dnn.blobFromImage(image, 1 / 255.0, (416, 416), swapRB=True, crop=False)
 
-    # Initializing for getting box coordinates, confidences, classid 
-    boxes = []
-    confidences = []
-    classIDs = []
-    threshold = 0.15
+        #Run image through model.
+        self.model.setInput(blob)
+        layerOutputs = self.model.forward(ln)
 
-    for output in layerOutputs:
-        for detection in output:
-            scores = detection[5:]
-            classID = np.argmax(scores)
-            confidence = scores[classID]
-            if confidence > threshold:
-                box = detection[0:4] * np.array([W, H, W, H])
-                (centerX, centerY, width, height) = box.astype("int")           
-                x = int(centerX - (width / 2))
-                y = int(centerY - (height / 2))    
-                boxes.append([x, y, int(width), int(height)])
-                confidences.append(float(confidence))
-                classIDs.append(classID)
-    results = []
-    idxs = cv2.dnn.NMSBoxes(boxes, confidences, threshold, 0.1)
-    if len(idxs) > 0:
-        for i in idxs.flatten():
-            (x, y) = (boxes[i][0], boxes[i][1])
-            (w, h) = (boxes[i][2], boxes[i][3])
-            x_norm, y_norm, w_norm, h_norm = boxes[i] / np.array([W, H, W, H])
-            lbl = labels[classIDs[i]]
+        # Initializing for getting box coordinates, confidences, classid 
+        boxes = []
+        confidences = []
+        classIDs = []
+        threshold = 0.15
 
-            results.append({"name":lbl, "bbox": [x_norm, y_norm, w_norm, h_norm]})  
-    print(results)
-    return results
+        for output in layerOutputs:
+            for detection in output:
+                scores = detection[5:]
+                classID = np.argmax(scores)
+                confidence = scores[classID]
+                if confidence > threshold:
+                    box = detection[0:4] * np.array([W, H, W, H])
+                    (centerX, centerY, width, height) = box.astype("int")           
+                    x = int(centerX - (width / 2))
+                    y = int(centerY - (height / 2))    
+                    boxes.append([x, y, int(width), int(height)])
+                    confidences.append(float(confidence))
+                    classIDs.append(classID)
+        results = []
+        idxs = cv2.dnn.NMSBoxes(boxes, confidences, threshold, 0.1)
+        if len(idxs) > 0:
+            for i in idxs.flatten():
+                (x, y) = (boxes[i][0], boxes[i][1])
+                (w, h) = (boxes[i][2], boxes[i][3])
+                x_norm, y_norm, w_norm, h_norm = boxes[i] / np.array([W, H, W, H])
+                lbl = labels[classIDs[i]]
+
+                results.append({"name":lbl, "bbox": [x_norm, y_norm, w_norm, h_norm]})  
+        print(results)
+        return results
 
 
 # Testing if above function is working
 
-path = './test/five.jpg'
-detections = get_detections(path)
+#path = './../test/two.jpg'
+furniture_detect = furniture()
+camera = cv2.VideoCapture(0)
+while True:
+    _, image = camera.read()
+    cv2.imshow("a", image)
+    cv2.waitKey(1)
+    detections = furniture_detect.get_detections(image)
+    print(detections)
+
+
 #detections = json.loads(detections_json)
 #label_map = {0: 'Chair', 1:'Sofa', 2:'Table'}
 # image = cv2.imread(path)

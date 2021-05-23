@@ -5,20 +5,8 @@ import json
 
 # Takes in the path of target image and returns class ids and bounding box labels as JSON strings
 # Return format [[c1,x1,y1,w1,h1],[c2,x2,y2,w2,h2]...]. Returns [] if no detection.
-
-def get_detections(path):
-    weights_path = './yolov3-tiny-obj_best.weights' 
-    config_path = './yolov3-tiny-obj.cfg'
-    labels_path = './obj.names'
-    #Load model based on cfg files and trained weights
-    model = cv2.dnn.readNetFromDarknet(config_path, weights_path)
-    ln = model.getLayerNames()
-    #Get output layers
-    ln = [ln[i[0] - 1] for i in model.getUnconnectedOutLayers()]
-    image = cv2.imread(path)
-    #Read labels from .names file
-    labels = open(labels_path).read().strip().split("\n")
-    #Get image size, reshape and normalize.
+class furniture: 
+    def get_detections(image):
     (H, W) = image.shape[:2]
     blob = cv2.dnn.blobFromImage(image, 1 / 255.0, (416, 416), swapRB=True, crop=False)
 
